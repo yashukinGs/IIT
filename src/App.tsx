@@ -34,6 +34,8 @@ import {
   whatsappLink,
 } from "./config/payment"
 
+const BRAND_LOGO_URL = `${import.meta.env.BASE_URL}infinity-institute-logo-hd.png`
+
 type RazorpayPaymentDetails = {
   razorpay_order_id: string
   razorpay_payment_id: string
@@ -69,6 +71,16 @@ function loadRazorpayCheckout() {
   })
 }
 
+async function readCheckoutResponse<T>(response: Response) {
+  try {
+    return (await response.json()) as T
+  } catch {
+    throw new Error(
+      "Secure payment service is unavailable on this preview. Deploy the payment API and configure Razorpay first.",
+    )
+  }
+}
+
 function Brand({ footer = false }: { footer?: boolean }) {
   const logoDialogRef = useRef<HTMLDialogElement>(null)
 
@@ -82,7 +94,7 @@ function Brand({ footer = false }: { footer?: boolean }) {
       >
         <span className="brand-logo">
           <img
-            src="/infinity-institute-logo-hd.png"
+            src={BRAND_LOGO_URL}
             alt="Infinity Institute of Technology logo"
             width="54"
             height="54"
@@ -124,7 +136,7 @@ function Brand({ footer = false }: { footer?: boolean }) {
             <X size={21} />
           </button>
           <img
-            src="/infinity-institute-logo-hd.png"
+            src={BRAND_LOGO_URL}
             alt="Infinity Institute of Technology"
             width="280"
             height="280"
@@ -436,13 +448,13 @@ function CheckoutModal({
 
     try {
       const orderResponse = await fetch("/api/ebook-order", { method: "POST" })
-      const order = (await orderResponse.json()) as {
+      const order = await readCheckoutResponse<{
         keyId?: string
         orderId?: string
         amount?: number
         currency?: string
         error?: string
-      }
+      }>(orderResponse)
       if (!orderResponse.ok || !order.keyId || !order.orderId || !order.amount) {
         throw new Error(order.error || "Could not start checkout. Please try again.")
       }
@@ -469,10 +481,10 @@ function CheckoutModal({
                 signature: payment.razorpay_signature,
               }),
             })
-            const verification = (await verificationResponse.json()) as {
+            const verification = await readCheckoutResponse<{
               accessUrl?: string
               error?: string
-            }
+            }>(verificationResponse)
             if (!verificationResponse.ok || !verification.accessUrl) {
               throw new Error(
                 verification.error || "Payment verification failed. Please contact support.",
@@ -940,7 +952,7 @@ export default function App() {
                   <div className="window-brand">
                     <span className="window-brand-logo">
                       <img
-                        src="/infinity-institute-logo-hd.png"
+                        src={BRAND_LOGO_URL}
                         alt="Infinity Institute of Technology"
                         width="46"
                         height="46"
