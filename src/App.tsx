@@ -34,6 +34,41 @@ import {
   whatsappLink,
 } from "./config/payment"
 
+type RazorpayPaymentDetails = {
+  razorpay_order_id: string
+  razorpay_payment_id: string
+  razorpay_signature: string
+}
+
+type RazorpayCheckoutOptions = {
+  key: string
+  amount: number
+  currency: string
+  order_id: string
+  name: string
+  description: string
+  handler: (payment: RazorpayPaymentDetails) => void | Promise<void>
+  modal?: { ondismiss?: () => void }
+}
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => { open: () => void }
+  }
+}
+
+function loadRazorpayCheckout() {
+  if (window.Razorpay) return Promise.resolve()
+
+  return new Promise<void>((resolve, reject) => {
+    const script = document.createElement("script")
+    script.src = "https://checkout.razorpay.com/v1/checkout.js"
+    script.onload = () => resolve()
+    script.onerror = () => reject(new Error("Could not load secure checkout."))
+    document.body.append(script)
+  })
+}
+
 function Brand({ footer = false }: { footer?: boolean }) {
   const logoDialogRef = useRef<HTMLDialogElement>(null)
 
@@ -372,6 +407,11 @@ function CheckoutModal({
   onClose: () => void
 }) {
   const [step, setStep] = useState<"details" | "payment">("details")
+  const [ebookPaymentStatus, setEbookPaymentStatus] = useState<
+    "idle" | "processing" | "verified"
+  >("idle")
+  const [ebookAccessUrl, setEbookAccessUrl] = useState("")
+  const [ebookPaymentError, setEbookPaymentError] = useState("")
   const dialogRef = useRef<HTMLDialogElement>(null)
   const configured = isPaymentConfigured()
   const intent = createUpiIntent(course)
@@ -389,6 +429,78 @@ function CheckoutModal({
   useEffect(() => {
     dialogRef.current?.scrollTo({ top: 0 })
   }, [step])
+
+  async function startEbookCheckout() {
+    setEbookPaymentStatus("processing")
+    setEbookPaymentError("")
+
+    try {
+      const orderResponse = await fetch("/api/ebook-order", { method: "POST" })
+      const order = (await orderResponse.json()) as {
+        keyId?: string
+        orderId?: string
+        amount?: number
+        currency?: string
+        error?: string
+      }
+      if (!orderResponse.ok || !order.keyId || !order.orderId || !order.amount) {
+        throw new Error(order.error || "Could not start checkout. Please try again.")
+      }
+
+      await loadRazorpayCheckout()
+      const Razorpay = window.Razorpay
+      if (!Razorpay) throw new Error("Secure checkout is unavailable. Please try again.")
+
+      new Razorpay({
+        key: order.keyId,
+        amount: order.amount,
+        currency: order.currency || "INR",
+        order_id: order.orderId,
+        name: "Infinity Institute of Technology",
+        description: course.name,
+        handler: async (payment) => {
+          try {
+            const verificationResponse = await fetch("/api/ebook-verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: payment.razorpay_order_id,
+                paymentId: payment.razorpay_payment_id,
+                signature: payment.razorpay_signature,
+              }),
+            })
+            const verification = (await verificationResponse.json()) as {
+              accessUrl?: string
+              error?: string
+            }
+            if (!verificationResponse.ok || !verification.accessUrl) {
+              throw new Error(
+                verification.error || "Payment verification failed. Please contact support.",
+              )
+            }
+            setEbookAccessUrl(verification.accessUrl)
+            setEbookPaymentStatus("verified")
+          } catch (error) {
+            setEbookPaymentStatus("idle")
+            setEbookPaymentError(
+              error instanceof Error
+                ? error.message
+                : "Payment verification failed. Please contact support.",
+            )
+          }
+        },
+        modal: {
+          ondismiss: () => setEbookPaymentStatus("idle"),
+        },
+      }).open()
+    } catch (error) {
+      setEbookPaymentStatus("idle")
+      setEbookPaymentError(
+        error instanceof Error ? error.message : "Could not start checkout.",
+      )
+    }
+  }
+
   return (
     <dialog
       ref={dialogRef}
@@ -463,8 +575,10 @@ function CheckoutModal({
                 <ArrowRight size={18} />
               </button>
               <p className="payment-note">
-                <ShieldCheck size={14} /> Pay via UPI, then WhatsApp your
-                screenshot for course links
+                <ShieldCheck size={14} />
+                {course.id === "motivational-ebooks"
+                  ? "Verified payment unlocks your e-book library here"
+                  : "Pay via UPI, then WhatsApp your screenshot for course links"}
               </p>
             </div>
           </>
@@ -479,9 +593,56 @@ function CheckoutModal({
             <div className="payment-amount">
               <span>Amount to Pay</span>
               <strong>₹{course.price}</strong>
-              <span>Step 1 · Pay, then contact us on WhatsApp</span>
+              <span>
+                {course.id === "motivational-ebooks"
+                  ? "Secure checkout · Access after payment verification"
+                  : "Step 1 · Pay, then contact us on WhatsApp"}
+              </span>
             </div>
-            {configured ? (
+            {course.id === "motivational-ebooks" ? (
+              <div className="ebook-payment-flow" aria-live="polite">
+                {ebookPaymentStatus === "verified" ? (
+                  <>
+                    <div className="ebook-payment-success">
+                      <Check size={19} /> Payment verified. Your library is ready.
+                    </div>
+                    <a
+                      className="button primary full-width"
+                      href={ebookAccessUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <BookOpen size={18} /> Open 1000+ E-books
+                      <ArrowUpRight size={18} />
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <p className="qr-help">
+                      Complete payment in the secure checkout. Your access link
+                      appears here only after the payment is verified.
+                    </p>
+                    <button
+                      className="button primary full-width"
+                      type="button"
+                      onClick={startEbookCheckout}
+                      disabled={ebookPaymentStatus === "processing"}
+                    >
+                      <CreditCard size={18} />
+                      {ebookPaymentStatus === "processing"
+                        ? "Opening secure checkout..."
+                        : `Pay ₹${course.price} securely`}
+                      <ArrowUpRight size={18} />
+                    </button>
+                    {ebookPaymentError && (
+                      <p className="ebook-payment-error" role="alert">
+                        {ebookPaymentError}
+                      </p>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : configured ? (
               <>
                 <div className="qr-container">
                   <QRCodeSVG
@@ -514,48 +675,52 @@ function CheckoutModal({
                 <WhatsAppButton>Get payment help</WhatsAppButton>
               </div>
             )}
-            <div className="screenshot-step">
-              <span className="step-icon">
-                <MessageCircle size={21} />
-              </span>
-              <div>
-                <h3>Step 2 · Get your course links</h3>
-                <p>
-                  Payment alone does not unlock access. Contact us on WhatsApp
-                  after paying to receive your links.
+            {course.id !== "motivational-ebooks" && (
+              <>
+                <div className="screenshot-step">
+                  <span className="step-icon">
+                    <MessageCircle size={21} />
+                  </span>
+                  <div>
+                    <h3>Step 2 · Get your course links</h3>
+                    <p>
+                      Payment alone does not unlock access. Contact us on WhatsApp
+                      after paying to receive your links.
+                    </p>
+                    <ol className="mt-3 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-muted">
+                      <li>Open WhatsApp using the button below.</li>
+                      <li>
+                        Attach your payment screenshot and send the ready-made
+                        message with your course and amount.
+                      </li>
+                      <li>
+                        We verify your payment and send{" "}
+                        {course.id === bundle.id
+                          ? `links to all ${bundle.modules.length} courses in this bundle`
+                          : "your purchased course link"}{" "}
+                        in the same WhatsApp chat.
+                      </li>
+                    </ol>
+                    <strong>WhatsApp: {DISPLAY_PHONE}</strong>
+                  </div>
+                </div>
+                <a
+                  className="button whatsapp full-width mt-5"
+                  href={paymentScreenshotLink(course)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle size={18} />
+                  I've paid — Get course links
+                  <ArrowUpRight size={17} />
+                </a>
+                <p className="payment-note">
+                  <ShieldCheck size={15} /> Links are shared on WhatsApp only
+                  after manual payment verification. Opening a UPI app does not
+                  confirm payment.
                 </p>
-                <ol className="mt-3 list-decimal space-y-2 pl-4 text-xs leading-relaxed text-muted">
-                  <li>Open WhatsApp using the button below.</li>
-                  <li>
-                    Attach your payment screenshot and send the ready-made
-                    message with your course and amount.
-                  </li>
-                  <li>
-                    We verify your payment and send{" "}
-                    {course.id === bundle.id
-                      ? `links to all ${bundle.modules.length} courses in this bundle`
-                      : "your purchased course link"}{" "}
-                    in the same WhatsApp chat.
-                  </li>
-                </ol>
-                <strong>WhatsApp: {DISPLAY_PHONE}</strong>
-              </div>
-            </div>
-            <a
-              className="button whatsapp full-width mt-5"
-              href={paymentScreenshotLink(course)}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <MessageCircle size={18} />
-              I've paid — Get course links
-              <ArrowUpRight size={17} />
-            </a>
-            <p className="payment-note">
-              <ShieldCheck size={15} /> Links are shared on WhatsApp only after
-              manual payment verification. Opening a UPI app does not confirm
-              payment.
-            </p>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -1025,19 +1190,19 @@ export default function App() {
                   icon: BookOpen,
                 },
                 {
-                  title: "Make secure UPI payment",
-                  text: "Pay the exact amount with your UPI app.",
+                  title: "Pay securely online",
+                  text: "Complete checkout for your selected course. E-book payments use secure online checkout.",
                   icon: Smartphone,
                 },
                 {
-                  title: "Contact us on WhatsApp",
-                  text: "After paying, send your payment screenshot and course details. This step is required for access.",
-                  icon: MessageCircle,
+                  title: "Payment is verified",
+                  text: "E-book access unlocks here automatically. Other course access is confirmed manually.",
+                  icon: ShieldCheck,
                 },
                 {
-                  title: "Get your course links",
-                  text: "We verify your payment and share your purchased course links in the same WhatsApp chat.",
-                  icon: GraduationCap,
+                  title: "Open your learning material",
+                  text: "Open the e-book library from this website. Contact us for access to other courses.",
+                  icon: BookOpen,
                 },
               ].map(({ title, text, icon: Icon }, index) => (
                 <div className="step-card" key={title}>
