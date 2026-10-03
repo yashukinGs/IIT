@@ -239,10 +239,25 @@ function CourseArt({
           </span>
         </>
       )}
+      {course.thumbnail === "ebooks" && (
+        <>
+          <div className="ebook-art-stack" aria-hidden="true">
+            <span className="ebook-cover ebook-cover-back">
+              <BookOpen size={20} />
+            </span>
+            <span className="ebook-cover ebook-cover-front">
+              <Sparkles size={19} />
+              <strong>1000+</strong>
+              <small>WORDS TO GROW</small>
+            </span>
+          </div>
+          <span className="art-mini-label">A NEW PAGE STARTS TODAY.</span>
+        </>
+      )}
       {course.thumbnail === "bundle" && (
         <div className="bundle-art-symbol">
           <Layers3 size={70} />
-          <span>6 skills. Endless possibilities.</span>
+          <span>{bundle.modules.length} courses. Endless possibilities.</span>
         </div>
       )}
     </div>
@@ -252,7 +267,7 @@ function CourseArt({
 function PlayfulHeroOffer({ onSelect }: { onSelect: () => void }) {
   const [attempts, setAttempts] = useState(0)
   const prompts = [
-    "₹99 ka offer pakad ke dikhao! Try 1 / 4",
+    `₹${bundle.price} ka offer pakad ke dikhao! Try 1 / 4`,
     "Oops! Ab idhar hoon. Try 2 / 4",
     "Bas ek aur try! Try 3 / 4",
     "Pakad liya! Ab click karo aur bundle dekho.",
@@ -263,7 +278,7 @@ function PlayfulHeroOffer({ onSelect }: { onSelect: () => void }) {
       <div className="hero-offer-track">
         <button
           className="hero-offer-catch"
-          aria-label={`Special offer: all 6 courses for ₹${bundle.price}`}
+          aria-label={`Special offer: all ${bundle.modules.length} courses for ₹${bundle.price}`}
           aria-describedby="hero-offer-hint"
           onClick={(event) => {
             // Keyboard and reduced-motion users can open the offer directly.
@@ -285,7 +300,7 @@ function PlayfulHeroOffer({ onSelect }: { onSelect: () => void }) {
             <span className="hero-offer-text">
               <span className="hero-offer-label">SPECIAL OFFER</span>
               <strong>
-                All 6 courses <span>₹{bundle.price}</span>
+                All {bundle.modules.length} courses <span>₹{bundle.price}</span>
               </strong>
             </span>
             <ArrowUpRight className="hero-offer-arrow" size={21} />
@@ -581,6 +596,11 @@ const reasons = [
   },
 ]
 
+const bundleOriginalPrice = courses.reduce(
+  (total, course) => total + course.price,
+  0,
+)
+
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null)
@@ -593,6 +613,7 @@ export default function App() {
     "Design & Creative",
     "AI & Technology",
     "Digital Marketing",
+    "Personal Growth",
   ]
   const visibleCourses = courses.filter(
     (course) =>
@@ -601,7 +622,8 @@ export default function App() {
         ["canva", "video-editing", "2d-animation"].includes(course.id)) ||
       (filter === "AI & Technology" &&
         ["chatgpt", "wordpress"].includes(course.id)) ||
-      (filter === "Digital Marketing" && course.id === "facebook-ads"),
+      (filter === "Digital Marketing" && course.id === "facebook-ads") ||
+      (filter === "Personal Growth" && course.id === "motivational-ebooks"),
   )
   function handleContact(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -819,9 +841,9 @@ export default function App() {
                   <Zap size={23} fill="currentColor" />
                 </span>
                 <div>
-                  ALL 6 COURSES
+                  ALL {bundle.modules.length} COURSES
                   <strong>
-                    Just ₹99 <ArrowUpRight size={17} />
+                    Just ₹{bundle.price} <ArrowUpRight size={17} />
                   </strong>
                 </div>
               </button>
@@ -872,7 +894,7 @@ export default function App() {
                 </p>
               </div>
               <span className="courses-note">
-                <BookOpen size={17} /> 6 practical courses, one bright start
+                <BookOpen size={17} /> {courses.length} practical courses, one bright start
               </span>
             </div>
             <div className="course-filters" aria-label="Filter courses">
@@ -884,7 +906,7 @@ export default function App() {
                   aria-pressed={filter === item}
                 >
                   {item}
-                  {item === "All Courses" && <span>6</span>}
+                  {item === "All Courses" && <span>{courses.length}</span>}
                 </button>
               ))}
             </div>
@@ -934,26 +956,26 @@ export default function App() {
               </div>
               <div className="bundle-price-panel">
                 <span className="bundle-price-label">
-                  ALL 6 COURSES. ONE SPECIAL PRICE.
+                  ALL {bundle.modules.length} COURSES. ONE SPECIAL PRICE.
                 </span>
                 <div className="bundle-price">
-                  <del>₹1182</del>
+                  <del>₹{bundleOriginalPrice}</del>
                   <strong>
-                    ₹99<span>only</span>
+                    ₹{bundle.price}<span>only</span>
                   </strong>
                 </div>
                 <span className="bundle-saving">
-                  Save ₹1083 with the bundle
+                  Save ₹{bundleOriginalPrice - bundle.price} with the bundle
                 </span>
                 <button
                   className="button bundle-cta"
                   onClick={() => setSelectedCourse(bundle)}
                 >
-                  GET ALL COURSES — ₹99
+                  GET ALL COURSES — ₹{bundle.price}
                   <ArrowRight size={18} />
                 </button>
                 <span className="bundle-footnote">
-                  <ShieldCheck size={13} /> One-time payment. All six skills.
+                  <ShieldCheck size={13} /> One-time payment. All {bundle.modules.length} courses.
                 </span>
               </div>
             </div>

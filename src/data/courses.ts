@@ -167,17 +167,43 @@ export const courses: Course[] = [
       "Your first animation project",
     ],
   },
+  {
+    id: "motivational-ebooks",
+    name: "1000+ Motivational E-books",
+    shortName: "Motivational E-books",
+    price: 197,
+    category: "Personal Growth",
+    thumbnail: "ebooks",
+    description:
+      "Explore a library of 1,000+ motivational e-books covering mindset, confidence, positive habits and personal growth.",
+    features: [
+      "1,000+ motivational e-books",
+      "Mindset & confidence",
+      "Positive habits",
+      "Personal growth topics",
+      "Goal-setting inspiration",
+      "Read at your own pace",
+    ],
+    modules: [
+      "Mindset & motivation",
+      "Building confidence",
+      "Positive habits & productivity",
+      "Resilience & positive thinking",
+      "Goal setting",
+      "Personal growth reading",
+    ],
+  },
 ]
 
 export const bundle: Course = {
   id: "all-courses",
   name: "Ultimate Digital Skills Bundle",
-  shortName: "All 6 Courses",
-  price: 99,
+  shortName: "All 7 Courses",
+  price: 199,
   category: "Complete Bundle",
   thumbnail: "bundle",
   description:
-    "Get access to all featured courses at one special bundle price. Build your toolkit with design, video, AI, advertising, websites and animation.",
+    "Get access to all featured courses at one special bundle price, including design, video, AI, advertising, websites, animation and motivational e-books.",
   features: courses.map((course) => course.shortName),
   modules: courses.map((course) => course.name),
 }

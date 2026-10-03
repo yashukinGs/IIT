@@ -178,6 +178,13 @@ svg { flex-shrink: 0; }
 .website-preview { position: absolute; width: 130px; height: 83px; right: 33px; top: 59px; transform: rotate(7deg); background: #f5fafb; border: 1px solid #c5dce7; border-radius: 5px; padding: 9px; box-shadow: 0 5px 15px #1b3d5125; }
 .website-preview > div { width: 30px; height: 4px; background: #8398ac; border-radius: 2px; margin-bottom: 8px; }.website-preview section { display: flex; flex-direction: column; gap: 4px; position: relative; }.website-preview section:after { content: ''; width: 40px; height: 26px; background: #afc9d5; border-radius: 2px; position: absolute; right: 0; top: 0; }.website-preview section i { width: 48px; height: 4px; background: #bbc9d0; }.website-preview section i:first-child { background: #7595aa; width: 42px; }.website-preview section i:last-child { width: 24px; height: 7px; background: #6487a0; margin-top: 4px; }.website-preview footer { display: flex; gap: 4px; margin-top: 9px; }.website-preview footer i { width: 32px; height: 15px; background: #dce7eb; border-radius: 2px; }
 .art-animation { background: linear-gradient(115deg, #e7a06d, #d67969); }
+.art-ebooks { background: linear-gradient(115deg, #287f78, #23647a); }
+.ebook-art-stack { position: absolute; top: 50%; left: 50%; width: 150px; height: 130px; transform: translate(-50%, -50%); }
+.ebook-cover { position: absolute; top: 15px; left: 50%; display: flex; align-items: center; justify-content: center; width: 78px; height: 101px; border-radius: 4px 8px 8px 4px; box-shadow: 0 9px 20px #123c3d40; }
+.ebook-cover-back { transform: translateX(-32px) rotate(-11deg); background: #f4c16e; color: #87592c; }
+.ebook-cover-front { flex-direction: column; gap: 4px; transform: translateX(-40%) rotate(8deg); background: #f7f2dc; color: #346b5b; }
+.ebook-cover-front strong { font-size: 18px; line-height: 1; }
+.ebook-cover-front small { font-size: 5px; font-weight: 700; }
 .animation-frame { width: 146px; height: 100px; border: 1px solid #ffe1bdae; position: absolute; left: 50%; top: 38px; transform: translateX(-50%) rotate(-7deg); border-radius: 5px; background: #f7c69735; box-shadow: 0 5px 10px #9a503610; }
 .animation-star { position: absolute; font-size: 88px; color: #ffedb8; top: -6px; left: 33px; line-height: 1.2; text-shadow: 3px 5px 0 #c37a67; }
 .animation-frame > span { position: absolute; width: 7px; height: 7px; background: #ffdfba; border: 1px solid #b47560; }.animation-frame > span:nth-child(2) { top: -4px; left: -4px; }.animation-frame > span:nth-child(3) { right: -4px; bottom: -4px; }.animation-frame > span:nth-child(4) { left: -4px; bottom: -4px; }
