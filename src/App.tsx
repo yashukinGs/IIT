@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Code2,
   CreditCard,
-  Download,
   Globe2,
   GraduationCap,
   Layers3,
@@ -1229,17 +1228,6 @@ export default function App() {
               Learning without limits.
               <ArrowUpRight size={13} />
             </span>
-          </div>
-          <div className="footer-download-row">
-            <a
-              className="button primary footer-download"
-              href="/infinity-institute-of-technology-website.zip"
-              download
-            >
-              <Download size={18} />
-              Download Complete Website ZIP
-            </a>
-            <span>Temporary download button</span>
           </div>
         </div>
       </footer>
